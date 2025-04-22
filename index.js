@@ -66,5 +66,43 @@ app.post('/whatsapp-webhook', (req, res) => {
 
     res.sendStatus(200);
 });
-
+app.post('/shopify-webhook', express.json(), async (req, res) => {
+    const order = req.body;
+    console.log('🛍️ New order received from Shopify:', order);
+  
+    // Extract customer phone & order info
+    const customerPhone = order?.customer?.phone;
+    const orderId = order?.id;
+  
+    if (customerPhone) {
+        const message = `🛍️ Hi! Your Budget Bazaar order #${orderId} is ready.\nReply with *YES* to confirm or *NO* to cancel.`;
+  
+      // Send WhatsApp message
+      await sendWhatsAppMessage(customerPhone, message);
+    }
+  
+    res.sendStatus(200);
+  });
+  
+  app.post('/whatsapp-webhook', express.json(), async (req, res) => {
+    const entry = req.body.entry?.[0];
+    const changes = entry?.changes?.[0];
+    const message = changes?.value?.messages?.[0];
+  
+    if (message?.text?.body) {
+      const userMessage = message.text.body.trim().toLowerCase();
+      const from = message.from; // customer's WhatsApp number
+  
+      if (userMessage === 'yes') {
+        await sendWhatsAppMessage(from, `✅ Thanks! Your order is confirmed. We'll ship it soon.`);
+      } else if (userMessage === 'no') {
+        await sendWhatsAppMessage(from, `❌ Got it. Your order has been cancelled. If this was a mistake, reply HELP.`);
+      } else {
+        await sendWhatsAppMessage(from, `🤖 Sorry, I didn’t understand. Please reply with *YES* or *NO*.`);
+      }
+    }
+  
+    res.sendStatus(200);
+  });
+  
 app.listen(3000, () => console.log("WhatsApp bot for Budget Bazaar running on port 3000"));
